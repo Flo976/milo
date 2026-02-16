@@ -30,12 +30,12 @@ async def speech_to_text(req: STTRequest):
     except AudioValidationError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    text, processing_ms = await run_stt(audio)
+    text, confidence, processing_ms = await run_stt(audio)
 
     return STTResponse(
         text=text,
         language="mg",
-        confidence=0.85,
+        confidence=round(confidence, 4),
         duration_ms=round(duration * 1000),
         processing_ms=round(processing_ms),
     )

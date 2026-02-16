@@ -22,8 +22,7 @@ class LocalLLM:
         """Generate response using local LLM via llama-cpp-python."""
         import time
         messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-        # Only keep last 4 exchanges to reduce prompt size
-        for h in history[-8:]:
+        for h in history:
             messages.append({"role": h["role"], "content": h["content"]})
         messages.append({"role": "user", "content": message})
 
@@ -62,7 +61,7 @@ def load_llm_local() -> LocalLLM:
     llm = Llama(
         model_path=model_path,
         n_gpu_layers=settings.local_llm_n_gpu_layers,
-        n_ctx=1024,
+        n_ctx=4096,
         n_batch=512,
         flash_attn=True,
         verbose=False,

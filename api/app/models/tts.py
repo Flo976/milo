@@ -20,6 +20,9 @@ class MMSTTS:
 
     def synthesize(self, text: str) -> bytes:
         """Synthesize text to WAV bytes."""
+        from app.services.verbalize import verbalize_numbers
+        text = verbalize_numbers(text)
+
         inputs = self.tokenizer(text, return_tensors="pt").to(self.device)
 
         with torch.no_grad():

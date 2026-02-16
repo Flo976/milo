@@ -5,6 +5,7 @@ import uuid
 import redis.asyncio as redis
 
 from app.config import settings
+from app.middleware.metrics import ACTIVE_SESSIONS
 
 logger = logging.getLogger("milo")
 
@@ -25,6 +26,7 @@ class SessionManager:
             json.dumps({"history": []}),
             ex=settings.session_ttl_s,
         )
+        ACTIVE_SESSIONS.inc()
         return session_id
 
     async def get_history(self, session_id: str) -> list[dict]:
@@ -62,3 +64,4 @@ class SessionManager:
 
     async def delete(self, session_id: str):
         await self._redis.delete(self._key(session_id))
+        ACTIVE_SESSIONS.dec()

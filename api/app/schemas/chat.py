@@ -13,3 +13,4 @@ class ChatResponse(BaseModel):
     session_id: str
     mode: str = Field(description="local or cloud")
     processing_ms: float
+    audio: str | None = Field(default=None, description="Base64 WAV audio (only when request mode=voice)")

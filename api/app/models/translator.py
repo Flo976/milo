@@ -1,4 +1,5 @@
 import logging
+import threading
 
 import torch
 from transformers import AutoModelForSeq2SeqLM, NllbTokenizer
@@ -20,29 +21,31 @@ class NLLBTranslator:
         self.tokenizer = tokenizer
         self.model = model
         self.device = device
+        self._lock = threading.Lock()  # tokenizer.src_lang is mutable shared state
 
     def translate(self, text: str, source: str, target: str) -> str:
         """Translate text between mg and fr."""
         src_lang = LANG_MAP.get(source, source)
         tgt_lang = LANG_MAP.get(target, target)
 
-        self.tokenizer.src_lang = src_lang
-        inputs = self.tokenizer(
-            text, return_tensors="pt", truncation=True, max_length=512
-        ).to(self.device)
+        with self._lock:
+            self.tokenizer.src_lang = src_lang
+            inputs = self.tokenizer(
+                text, return_tensors="pt", truncation=True, max_length=512
+            ).to(self.device)
 
-        tgt_lang_id = self.tokenizer.convert_tokens_to_ids(tgt_lang)
+            tgt_lang_id = self.tokenizer.convert_tokens_to_ids(tgt_lang)
 
-        with torch.no_grad():
-            generated = self.model.generate(
-                **inputs,
-                forced_bos_token_id=tgt_lang_id,
-                max_new_tokens=128,
-            )
+            with torch.no_grad():
+                generated = self.model.generate(
+                    **inputs,
+                    forced_bos_token_id=tgt_lang_id,
+                    max_new_tokens=128,
+                )
 
-        result = self.tokenizer.batch_decode(
-            generated, skip_special_tokens=True
-        )[0].strip()
+            result = self.tokenizer.batch_decode(
+                generated, skip_special_tokens=True
+            )[0].strip()
         return result
 
 

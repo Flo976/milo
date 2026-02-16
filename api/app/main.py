@@ -12,6 +12,21 @@ from app.routers import chat, conversation, health, stt, translate, tts
 logger = logging.getLogger("milo")
 
 
+async def _metrics_updater():
+    """Background task: update Prometheus gauge metrics every 15s."""
+    import torch
+    from app.middleware.metrics import MODELS_LOADED, GPU_VRAM_USED
+
+    while True:
+        try:
+            MODELS_LOADED.set(len(model_manager.loaded_models()))
+            if torch.cuda.is_available():
+                GPU_VRAM_USED.set(torch.cuda.memory_allocated())
+        except Exception as e:
+            logger.debug("Metrics updater error: %s", e)
+        await asyncio.sleep(15)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logging.basicConfig(
@@ -40,7 +55,15 @@ async def lifespan(app: FastAPI):
     logger.info("All models loaded: %s", model_manager.loaded_models())
     logger.info("VRAM: %s", model_manager.vram_usage())
 
+    # Start background metrics updater
+    metrics_task = None
+    if settings.prometheus_enabled:
+        metrics_task = asyncio.create_task(_metrics_updater())
+
     yield
+
+    if metrics_task:
+        metrics_task.cancel()
     logger.info("Milo Voice shutting down")
     model_manager.unload_all()
 

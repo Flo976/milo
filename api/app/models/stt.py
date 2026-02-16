@@ -1,4 +1,5 @@
 import logging
+import math
 
 import numpy as np
 import torch
@@ -16,8 +17,12 @@ class WhisperSTT:
         self.model = model
         self.device = device
 
-    def transcribe(self, audio: np.ndarray) -> str:
-        """Transcribe 16kHz mono float32 audio to text."""
+    def transcribe(self, audio: np.ndarray) -> tuple[str, float]:
+        """Transcribe 16kHz mono float32 audio to text.
+
+        Returns (text, confidence) where confidence is the mean token
+        probability from the generation scores (0.0–1.0).
+        """
         logger.info("[STT] Input audio: shape=%s, dtype=%s, rms=%.4f",
                      audio.shape, audio.dtype,
                      float(np.sqrt(np.mean(audio**2))) if len(audio) > 0 else 0)
@@ -31,12 +36,17 @@ class WhisperSTT:
         logger.info("[STT] Features: shape=%s, dtype=%s", input_features.shape, input_features.dtype)
 
         with torch.no_grad():
-            predicted_ids = self.model.generate(
+            output = self.model.generate(
                 input_features,
                 language="mg",
                 task="transcribe",
                 max_new_tokens=128,
+                output_scores=True,
+                return_dict_in_generate=True,
             )
+
+        predicted_ids = output.sequences
+        scores = output.scores  # tuple of tensors, one per generated token
 
         logger.info("[STT] Predicted IDs shape: %s, tokens: %s", predicted_ids.shape, predicted_ids[0][:20].tolist())
 
@@ -44,11 +54,36 @@ class WhisperSTT:
             predicted_ids, skip_special_tokens=True
         )[0].strip()
 
-        # Also decode without skipping special tokens for debug
-        raw_text = self.processor.batch_decode(predicted_ids, skip_special_tokens=False)[0]
-        logger.info("[STT] Raw decode: '%s'", raw_text[:200])
-        logger.info("[STT] Clean text: '%s'", text)
-        return text
+        # Compute confidence from token probabilities
+        confidence = self._compute_confidence(predicted_ids, scores)
+
+        logger.info("[STT] Text: '%s' (confidence=%.3f)", text, confidence)
+        return text, confidence
+
+    def _compute_confidence(self, sequences: torch.Tensor, scores: tuple) -> float:
+        """Compute mean token probability as a confidence score."""
+        if not scores:
+            return 0.0
+
+        eos_id = self.processor.tokenizer.eos_token_id
+        generated_tokens = sequences[0, -len(scores):]
+
+        token_probs = []
+        for i, score in enumerate(scores):
+            token_id = generated_tokens[i].item()
+            # Skip EOS token — it inflates confidence artificially
+            if token_id == eos_id:
+                continue
+            probs = torch.softmax(score[0].float(), dim=-1)
+            token_probs.append(probs[token_id].item())
+
+        if not token_probs:
+            return 0.0
+
+        # Geometric mean of probabilities (more robust to outliers)
+        avg_log_prob = sum(math.log(max(p, 1e-10)) for p in token_probs) / len(token_probs)
+        confidence = math.exp(avg_log_prob)
+        return max(0.0, min(1.0, confidence))
 
 
 def load_stt() -> WhisperSTT:

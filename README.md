@@ -296,84 +296,41 @@ python scripts/05b_test_mistral.py # Test du LLM local
 
 ---
 
-## Etat du projet
-
-### Audit API (2026-02-16)
-
-| Endpoint | Score | Latence P50 | Observations |
-|----------|-------|-------------|--------------|
-| Health | 10/10 | <10ms | OK |
-| TTS | 8/10 | 120ms | Rapide et fiable |
-| STT | 7/10 | 237ms | Bon sur phrases courtes, degrade sur textes longs |
-| Chat | 5/10 | 2.3s | Bonnes reponses mais pas de memoire conversationnelle |
-| Translate | 6/10 | 130ms | Bon sur phrases simples, hallucinations sur texte vide |
-
-### Bugs connus
-
-| # | Severite | Description |
-|---|----------|-------------|
-| B1 | CRITIQUE | `session_id` ignore dans Chat — pas de suivi de contexte |
-| B2 | CRITIQUE | Texte vide dans Translate retourne du texte hallucine |
-| B3 | MAJEUR | Round-trip FR→MG→FR perd le sens |
-| B4 | MAJEUR | Message vide dans Chat → fallback local → reponse en anglais |
-| B5 | MAJEUR | Texte vide dans TTS → 500 au lieu de 422 |
-| B6 | MINEUR | Metriques Prometheus custom jamais mises a jour |
-| B7 | MINEUR | `confidence` STT fixe a 0.85 (pas un vrai score) |
-| B8 | MINEUR | Mode "voice" dans Chat ne retourne pas d'audio |
-| B9 | MINEUR | 1/5 requetes paralleles echoue en 500 (race condition) |
-
----
-
 ## Roadmap
 
-### Fait
+### v0.1 — MVP (actuel)
 
-- [x] STT Whisper fine-tune malagasy (WER 20.78%)
-- [x] TTS MMS malagasy
-- [x] LLM local (Mistral 7B Q4)
-- [x] LLM cloud (Claude 3.5 Haiku) avec fallback
-- [x] Pipeline vocale complete (STT → LLM → TTS)
-- [x] Interface web React
-- [x] WebSocket conversation temps reel
-- [x] Monitoring Prometheus/Grafana
-- [x] Documentation API (Swagger + ReDoc)
+- [x] Pipeline vocale complete STT → LLM → TTS en malagasy
+- [x] Whisper Medium fine-tune malagasy (WER 20.78%)
+- [x] TTS MMS malagasy avec verbalisation des chiffres
+- [x] LLM cloud (Claude) + fallback local (Mistral 7B)
+- [x] Interface web React + conversation WebSocket temps reel
+- [x] API REST documentee (Swagger / ReDoc)
+- [x] Monitoring Prometheus / Grafana
 
-### P0 — Critiques ~~(a corriger immediatement)~~ FAIT
+### v0.2 — Qualite & Temps reel
 
-- [x] **B1** — Session_id fonctionne correctement (verifie, non reproductible)
-- [x] **B2** — Valider texte vide dans Translate → 422
-- [x] **B5** — Valider texte vide dans TTS → 422
-- [x] **B4** — Valider message vide dans Chat → 422
+- [ ] Streaming Chat (SSE) et TTS (chunks audio) pour une UX temps reel
+- [ ] Fine-tuning STT sur textes longs (degradation au-dela de 10s)
+- [ ] Fine-tuning TTS pour une voix plus naturelle
+- [ ] Ameliorer la traduction round-trip MG ↔ FR (NLLB)
+- [ ] Detection automatique de la langue (mg / fr) dans le STT
 
-### P1 — Important (sprint suivant)
+### v0.3 — Production
 
-- [ ] Score de confidence STT reel (CTC probabilities) au lieu du fixe 0.85
-- [ ] Ameliorer la traduction round-trip MG↔FR
-- [ ] Verbalisation des chiffres dans TTS/STT ("2024" → "roa arivo efatra amby roapolo")
-- [ ] Mode voice dans Chat — retourner l'audio TTS avec la reponse
-- [ ] Fix race condition sous charge (1/5 requetes concurrentes echoue)
-- [ ] Metriques Prometheus custom (`milo_models_loaded`, `milo_gpu_vram_used_bytes`)
-- [ ] Ameliorer traduction des expressions courantes ("Manao ahoana daholo")
+- [ ] Authentification multi-utilisateur et rate limiting par token/IP
+- [ ] Historique de conversation persistant (Redis + TTL configurable)
+- [ ] Mode offline complet — zero dependance internet
+- [ ] Dashboard Grafana exploitant les metriques custom
+- [ ] Containerisation production-ready (healthchecks, restart, GPU passthrough)
 
-### P2 — Backlog
+### v1.0 — Grand public
 
-- [ ] Detection auto de la langue STT (mg/fr)
-- [ ] Streaming TTS (chunks audio pour reduire le TTFB)
-- [ ] Streaming Chat (SSE) pour UX temps reel
-- [ ] Rate limiting par token/IP
-- [ ] Rotation des tokens API
-- [ ] Queue de requetes avec priorite
-- [ ] Cache de traductions frequentes (Redis)
-- [ ] Support format audio OGG/MP3 en sortie TTS
-- [ ] Historique de conversation persistant (Redis + TTL)
-- [ ] Dashboard Grafana exploitant les metriques
-- [ ] Fine-tuning STT sur textes longs (degradation >10s)
-- [ ] API de batch (traduction/TTS en lot)
-- [ ] Limiter la taille des payloads STT (audio base64)
-- [ ] Fine-tuning TTS pour voix naturelle
-- [ ] Mode offline complet (sans internet)
 - [ ] Application mobile (React Native)
-- [ ] Support dialectes regionaux
+- [ ] Support des dialectes regionaux (Betsimisaraka, Sakalava, Antandroy...)
+- [ ] Wake word « Milo » — activation vocale mains libres
+- [ ] Integration domotique (Home Assistant, MQTT)
+- [ ] Marketplace de skills / plugins communautaires
 
 ---
 
