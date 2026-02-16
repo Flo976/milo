@@ -19,6 +19,11 @@ async def translate(req: TranslateRequest):
 
     **Exemple :** `{"text": "Salama", "source": "mg", "target": "fr"}`
     """
+    if not req.text or not req.text.strip():
+        raise HTTPException(
+            status_code=422,
+            detail="Text must not be empty",
+        )
     if req.source not in VALID_LANGS or req.target not in VALID_LANGS:
         raise HTTPException(
             status_code=400,

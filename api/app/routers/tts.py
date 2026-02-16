@@ -21,6 +21,11 @@ async def text_to_speech(req: TTSRequest):
 
     Max 500 caracteres.
     """
+    if not req.text or not req.text.strip():
+        raise HTTPException(
+            status_code=422,
+            detail="Text must not be empty",
+        )
     if len(req.text) > settings.tts_max_chars:
         raise HTTPException(
             status_code=400,

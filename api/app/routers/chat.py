@@ -19,6 +19,12 @@ async def chat(req: ChatRequest):
 
     **Exemple :** `{"message": "Salama, iza ianao?"}`
     """
+    if not req.message or not req.message.strip():
+        raise HTTPException(
+            status_code=422,
+            detail="Message must not be empty",
+        )
+
     session_mgr = await get_session_manager()
 
     # Get or create session

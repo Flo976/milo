@@ -2,7 +2,8 @@
   <img src="https://img.shields.io/badge/lang-malagasy-green?style=for-the-badge" alt="Malagasy"/>
   <img src="https://img.shields.io/badge/mode-local--first-blue?style=for-the-badge" alt="Local-first"/>
   <img src="https://img.shields.io/badge/GPU-RTX_5070_Ti-76b900?style=for-the-badge&logo=nvidia" alt="GPU"/>
-  <img src="https://img.shields.io/badge/license-MIT-orange?style=for-the-badge" alt="License"/>
+  <img src="https://img.shields.io/badge/license-AGPL--3.0-orange?style=for-the-badge" alt="License"/>
+  <a href="https://github.com/Flo976/milo"><img src="https://img.shields.io/badge/github-Flo976%2Fmilo-181717?style=for-the-badge&logo=github" alt="GitHub"/></a>
 </p>
 
 <h1 align="center">Milo Voice</h1>
@@ -92,7 +93,7 @@ Une pipeline vocale complete, **local-first**, qui tourne sur un seul GPU :
 ### 1. Cloner et configurer
 
 ```bash
-git clone https://github.com/votre-user/milo.git
+git clone https://github.com/Flo976/milo.git
 cd milo
 cp .env.example .env
 # Editer .env avec vos chemins de modeles et cle API
@@ -295,16 +296,80 @@ python scripts/05b_test_mistral.py # Test du LLM local
 
 ---
 
+## Etat du projet
+
+### Audit API (2026-02-16)
+
+| Endpoint | Score | Latence P50 | Observations |
+|----------|-------|-------------|--------------|
+| Health | 10/10 | <10ms | OK |
+| TTS | 8/10 | 120ms | Rapide et fiable |
+| STT | 7/10 | 237ms | Bon sur phrases courtes, degrade sur textes longs |
+| Chat | 5/10 | 2.3s | Bonnes reponses mais pas de memoire conversationnelle |
+| Translate | 6/10 | 130ms | Bon sur phrases simples, hallucinations sur texte vide |
+
+### Bugs connus
+
+| # | Severite | Description |
+|---|----------|-------------|
+| B1 | CRITIQUE | `session_id` ignore dans Chat — pas de suivi de contexte |
+| B2 | CRITIQUE | Texte vide dans Translate retourne du texte hallucine |
+| B3 | MAJEUR | Round-trip FR→MG→FR perd le sens |
+| B4 | MAJEUR | Message vide dans Chat → fallback local → reponse en anglais |
+| B5 | MAJEUR | Texte vide dans TTS → 500 au lieu de 422 |
+| B6 | MINEUR | Metriques Prometheus custom jamais mises a jour |
+| B7 | MINEUR | `confidence` STT fixe a 0.85 (pas un vrai score) |
+| B8 | MINEUR | Mode "voice" dans Chat ne retourne pas d'audio |
+| B9 | MINEUR | 1/5 requetes paralleles echoue en 500 (race condition) |
+
+---
+
 ## Roadmap
 
-- [x] STT Whisper fine-tune malagasy
+### Fait
+
+- [x] STT Whisper fine-tune malagasy (WER 20.78%)
 - [x] TTS MMS malagasy
-- [x] LLM local (Mistral 7B)
-- [x] LLM cloud (Claude) avec fallback
-- [x] Pipeline vocale complete (STT -> LLM -> TTS)
+- [x] LLM local (Mistral 7B Q4)
+- [x] LLM cloud (Claude 3.5 Haiku) avec fallback
+- [x] Pipeline vocale complete (STT → LLM → TTS)
 - [x] Interface web React
 - [x] WebSocket conversation temps reel
 - [x] Monitoring Prometheus/Grafana
+- [x] Documentation API (Swagger + ReDoc)
+
+### P0 — Critiques ~~(a corriger immediatement)~~ FAIT
+
+- [x] **B1** — Session_id fonctionne correctement (verifie, non reproductible)
+- [x] **B2** — Valider texte vide dans Translate → 422
+- [x] **B5** — Valider texte vide dans TTS → 422
+- [x] **B4** — Valider message vide dans Chat → 422
+
+### P1 — Important (sprint suivant)
+
+- [ ] Score de confidence STT reel (CTC probabilities) au lieu du fixe 0.85
+- [ ] Ameliorer la traduction round-trip MG↔FR
+- [ ] Verbalisation des chiffres dans TTS/STT ("2024" → "roa arivo efatra amby roapolo")
+- [ ] Mode voice dans Chat — retourner l'audio TTS avec la reponse
+- [ ] Fix race condition sous charge (1/5 requetes concurrentes echoue)
+- [ ] Metriques Prometheus custom (`milo_models_loaded`, `milo_gpu_vram_used_bytes`)
+- [ ] Ameliorer traduction des expressions courantes ("Manao ahoana daholo")
+
+### P2 — Backlog
+
+- [ ] Detection auto de la langue STT (mg/fr)
+- [ ] Streaming TTS (chunks audio pour reduire le TTFB)
+- [ ] Streaming Chat (SSE) pour UX temps reel
+- [ ] Rate limiting par token/IP
+- [ ] Rotation des tokens API
+- [ ] Queue de requetes avec priorite
+- [ ] Cache de traductions frequentes (Redis)
+- [ ] Support format audio OGG/MP3 en sortie TTS
+- [ ] Historique de conversation persistant (Redis + TTL)
+- [ ] Dashboard Grafana exploitant les metriques
+- [ ] Fine-tuning STT sur textes longs (degradation >10s)
+- [ ] API de batch (traduction/TTS en lot)
+- [ ] Limiter la taille des payloads STT (audio base64)
 - [ ] Fine-tuning TTS pour voix naturelle
 - [ ] Mode offline complet (sans internet)
 - [ ] Application mobile (React Native)
@@ -312,10 +377,21 @@ python scripts/05b_test_mistral.py # Test du LLM local
 
 ---
 
+## Licence
+
+Ce projet est sous licence [**AGPL-3.0**](LICENSE).
+
+> **Note :** Les modeles Meta (NLLB-200, MMS-TTS) utilises sont sous licence CC-BY-NC 4.0
+> (usage non-commercial). Pour un usage commercial, remplacer ces modeles par des
+> alternatives permissives (Piper TTS, Opus-MT).
+
+---
+
 ## Contribuer
 
 ```bash
 # Fork + clone
+git clone https://github.com/Flo976/milo.git
 git checkout -b feature/ma-feature
 # ... modifications ...
 git commit -m "[feature] description"
@@ -327,5 +403,6 @@ git push origin feature/ma-feature
 
 <p align="center">
   <strong>Milo Voice</strong> — par <a href="https://sooatek.com">Sooatek</a><br/>
-  <sub>Donner une voix numerique au malagasy</sub>
+  <sub>Donner une voix numerique au malagasy</sub><br/><br/>
+  <a href="https://github.com/Flo976/milo">github.com/Flo976/milo</a>
 </p>
