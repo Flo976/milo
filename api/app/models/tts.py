@@ -20,8 +20,8 @@ class MMSTTS:
 
     def synthesize(self, text: str) -> bytes:
         """Synthesize text to WAV bytes."""
-        from app.services.verbalize import verbalize_numbers
-        text = verbalize_numbers(text)
+        from app.services.verbalize import clean_for_tts
+        text = clean_for_tts(text)
 
         inputs = self.tokenizer(text, return_tensors="pt").to(self.device)
 

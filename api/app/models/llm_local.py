@@ -12,7 +12,9 @@ SYSTEM_PROMPT = (
     "Aza mamaly amin'ny teny frantsay na anglisy raha tsy nangatahina manokana. "
     "Tsarovy ny zavatra rehetra nolazain'ny mpampiasa (anarana, toerana, zavatra tiany...) "
     "ary ampiasao izany rehefa misy ifandraisany amin'ny resaka. "
-    "Ataovy fohy ny valinao (fehezanteny 1-3)."
+    "Ataovy fohy ny valinao (fehezanteny 1-3). "
+    "Aza mampiasa emoji na sary. "
+    "Aza mampiasa teny anglisy na frantsay ao anatin'ny fehezanteny (ohatra: ampiasao 'degre' fa tsy 'degrees')."
 )
 
 

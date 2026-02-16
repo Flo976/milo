@@ -121,3 +121,26 @@ def verbalize_numbers(text: str) -> str:
             return m.group(0)
 
     return re.sub(r"\d+", _replace, text)
+
+
+# Regex matching most emoji Unicode ranges
+_EMOJI_RE = re.compile(
+    "["
+    "\U0001f300-\U0001f9ff"  # Misc Symbols, Emoticons, Dingbats, etc.
+    "\U00002600-\U000027bf"  # Misc Symbols, Dingbats
+    "\U0000fe00-\U0000fe0f"  # Variation Selectors
+    "\U0000200d"             # Zero Width Joiner
+    "\U000020e3"             # Combining Enclosing Keycap
+    "]+",
+    flags=re.UNICODE,
+)
+
+
+def clean_for_tts(text: str) -> str:
+    """Prepare text for TTS: remove emojis, verbalize numbers."""
+    text = _EMOJI_RE.sub("", text)
+    text = verbalize_numbers(text)
+    # Collapse multiple spaces / blank lines left by removed emojis
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"\n{2,}", "\n", text)
+    return text.strip()
